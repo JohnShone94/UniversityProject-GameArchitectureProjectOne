@@ -6,158 +6,126 @@ using System.Collections;
 
 public class s_Camera : MonoBehaviour
 {
+    public float distance = 20.0f;                          // Default Distance 
+    public float rotSpeed = 1000.0f;                           // Orbit speed (Left/Right)
+    public float zoomSpeed = 1000.0f;                           // Orbit speed (Up/Down)
 
-    public Transform target;                            // Target to follow
-    public float targetHeight = 1.7f;                       // Vertical offset adjustment
-    public float distance = 12.0f;                          // Default Distance
-    public float offsetFromWall = 0.1f;                     // Bring camera away from any colliding objects
-    public float maxDistance = 20;                      // Maximum zoom Distance
-    public float minDistance = 0.6f;                        // Minimum zoom Distance
-    public float xSpeed = 200.0f;                           // Orbit speed (Left/Right)
-    public float ySpeed = 200.0f;                           // Orbit speed (Up/Down)
-    public float yMinLimit = -80;                           // Looking up limit
-    public float yMaxLimit = 80;                            // Looking down limit
-    public float zoomRate = 40;                             // Zoom Speed
-    public float rotationDampening = 3.0f;              // Auto Rotation speed (higher = faster)
-    public float zoomDampening = 5.0f;                  // Auto Zoom speed (Higher = faster)
-    LayerMask collisionLayers = -1;     // What the camera will collide with
-
-    public bool lockToRearOfTarget;
-    public bool allowMouseInputX = true;
-    public bool allowMouseInputY = true;
+    public s_MapCreation map;
 
     private float xDeg = 0.0f;
     private float yDeg = 0.0f;
-    private float currentDistance;
-    public float desiredDistance;
-    private float correctedDistance;
-    private bool rotateBehind;
-
-    public GameObject userModel;
-    public bool inFirstPerson;
+    private float zDeg = 0.0f;
+    private float moveHorizontal;
+    private float moveVertical;
 
     void Start()
     {
-
-        Vector3 angles = transform.eulerAngles;
-        xDeg = angles.x;
-        yDeg = angles.y;
-        currentDistance = distance;
-        desiredDistance = distance;
-        correctedDistance = distance;
-
-        // Make the rigid body not change rotation 
-        if (GetComponent<Rigidbody>())
-            GetComponent<Rigidbody>().freezeRotation = true;
-
-        if (lockToRearOfTarget)
-            rotateBehind = true;
+        transform.position = new Vector3(map.GetMapSize().x / 2, 20);
+        moveHorizontal = Camera.main.transform.position.x;
+        moveVertical = Camera.main.transform.position.z;
+        distance = Camera.main.transform.position.y;
     }
 
     void Update()
     {
+        Vector2 sizeOfMap = map.GetMapSize();
 
-        if (Input.GetAxis("Mouse ScrollWheel") < 0)
+        if (Input.GetMouseButton(1))
         {
+            xDeg += Input.GetAxis("Mouse X") * rotSpeed * 0.02f;
+            yDeg -= Input.GetAxis("Mouse Y") * rotSpeed * 0.02f;
 
-            if (inFirstPerson == true)
+            ClampXAngle(xDeg);
+            ClampYAngle(yDeg);
+
+            Quaternion rotation = Quaternion.Euler(yDeg, xDeg, 0);
+            transform.rotation = rotation;
+        }
+
+        if (Input.GetButton("Horizontal"))
+        {
+            float hMove = Input.GetAxis("Horizontal");
+            if (transform.position.x < 0 - 5)
             {
-
-                minDistance = 10;
-                desiredDistance = 11;
-                userModel.SetActive(true);
-                inFirstPerson = false;
+                moveHorizontal = 0 - 5;
             }
-        }
-
-        if (desiredDistance <= 10)
-        {
-
-            minDistance = 0;
-            desiredDistance = 0;
-            userModel.SetActive(false);
-            inFirstPerson = true;
-        }
-    }
-
-    //Only Move camera after everything else has been updated
-    void LateUpdate()
-    {
-
-        // Don't do anything if target is not defined 
-        if (!target)
-            return;
-
-        Vector3 vTargetOffset3;
-
-        // If either mouse buttons are down, let the mouse govern camera position 
-        if (GUIUtility.hotControl == 0)
-        {
-            if (Input.GetKey(KeyCode.LeftControl))
+            else if (transform.position.x > sizeOfMap.x + 5)
             {
-
+                moveHorizontal = sizeOfMap.x + 5;
             }
             else
             {
-                if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
-                {
-                    //Check to see if mouse input is allowed on the axis
-                    if (allowMouseInputX)
-                        xDeg += Input.GetAxis("Mouse X") * xSpeed * 0.02f;
-                    if (allowMouseInputY)
-                        yDeg -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
-
-                }
+                moveHorizontal += hMove * 0.5f;
             }
         }
-        ClampAngle(yDeg);
 
-        // Set camera rotation 
-        Quaternion rotation = Quaternion.Euler(yDeg, xDeg, 0);
-
-        // Calculate the desired distance 
-        desiredDistance -= Input.GetAxis("Mouse ScrollWheel") * Time.deltaTime * zoomRate * Mathf.Abs(desiredDistance);
-        desiredDistance = Mathf.Clamp(desiredDistance, minDistance, maxDistance);
-        correctedDistance = desiredDistance;
-
-        // Calculate desired camera position
-        Vector3 vTargetOffset = new Vector3(0, -targetHeight, 0);
-        Vector3 position = target.position - (rotation * Vector3.forward * desiredDistance + vTargetOffset);
-
-        // Check for collision using the true target's desired registration point as set by user using height 
-        RaycastHit collisionHit;
-        Vector3 trueTargetPosition = new Vector3(target.position.x, target.position.y + targetHeight, target.position.z);
-
-        // If there was a collision, correct the camera position and calculate the corrected distance 
-        bool isCorrected = false;
-        if (Physics.Linecast(trueTargetPosition, position, out collisionHit, collisionLayers))
+        if (Input.GetButton("Vertical"))
         {
-            correctedDistance = Vector3.Distance(trueTargetPosition, collisionHit.point) - offsetFromWall;
-            isCorrected = true;
+            float vMove = Input.GetAxis("Vertical");
+            if (transform.position.z < 0 - 5)
+            {
+                moveVertical = 0 - 5;
+            }
+            else if(transform.position.z > sizeOfMap.y + 5)
+            {
+                moveVertical = sizeOfMap.y + 5;
+            }
+            else
+            {
+                moveVertical += vMove * 0.5f;
+            }
         }
 
-        // For smoothing, lerp distance only if either distance wasn't corrected, or correctedDistance is more than currentDistance 
-        currentDistance = !isCorrected || correctedDistance > currentDistance ? Mathf.Lerp(currentDistance, correctedDistance, Time.deltaTime * zoomDampening) : correctedDistance;
 
-        // Keep within limits
-        currentDistance = Mathf.Clamp(currentDistance, minDistance, maxDistance);
+        if (Input.GetAxis("Mouse ScrollWheel") != 0)
+        {
+            if(distance < 4.0f)
+            {
+                distance = 4.0f;
+            }
+            else
+            {
+                if(distance > 20.0f)
+                {
+                    distance = 20.0f;
+                }
+                else
+                {
+                    distance -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
+                }
 
-        // Recalculate position based on the new currentDistance 
-        position = target.position - (rotation * Vector3.forward * currentDistance + vTargetOffset);
+            }
+        }
 
-        //Finally Set rotation and position of camera
-        transform.rotation = rotation;
-        transform.position = position;
+        transform.position = new Vector3(moveHorizontal, distance, moveVertical);
+
     }
 
-    void ClampAngle(float angle)
+    void ClampXAngle(float angle)
     {
         if (angle < -360)
+        {
             angle += 360;
+        }
         if (angle > 360)
+        {
             angle -= 360;
+        }
 
-        yDeg = Mathf.Clamp(angle, -60, 80);
+        xDeg = Mathf.Clamp(angle, -40, 40);
     }
 
+    void ClampYAngle(float angle)
+    {
+        if (angle < -360)
+        {
+            angle += 360;
+        }
+        if (angle > 360)
+        {
+            angle -= 360;
+        }
+
+        yDeg = Mathf.Clamp(angle, -70, 70);
+    }
 }

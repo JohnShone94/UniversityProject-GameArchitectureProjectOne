@@ -8,6 +8,10 @@ public class s_MapCreation : MonoBehaviour
     private int zPos;
     private int tempXpos;
     private int tempYpos;
+    private int bodiesofwater;
+    private int rows;
+    private int columns;
+    private int treeAmount;
     private bool stageOneComplete;
     private bool stageTwoComplete;
     private bool stageThreeComplete;
@@ -17,18 +21,15 @@ public class s_MapCreation : MonoBehaviour
     public GameObject tileTree;
     public GameObject tileFruitTree;
     public GameObject rayStart;
-    public int bodiesofwater;
-    public int rows;
-    public int columns;
-    public int treeAmount;
-    void Start()
+
+    public void LoadMap(int vRows, int vColumns, int bodiesOfWater, int trees)
     {
+        columns = vColumns;
+        rows = vRows;
+        treeAmount = trees;
+        bodiesofwater = bodiesOfWater;
+
         GenerateWorld();
-       
-        
-    }
-    void Update()
-    {
     }
 
     private void GenerateWorld()
@@ -63,6 +64,7 @@ public class s_MapCreation : MonoBehaviour
 
         while (!stageThreeComplete)
         {
+            GetFoliage();
             Debug.Log("Stage Three Has Been Completed!");
             stageThreeComplete = true;
         }
@@ -167,28 +169,9 @@ public class s_MapCreation : MonoBehaviour
         }
     }
 
-    public void ReloadMap(int vRows, int vColumns, int bodiesOfWater, int trees)
+    public Vector2 GetMapSize()
     {
-        Vector3 mid = new Vector3(columns / 2, 1, rows / 2);
-        Collider[] hitColliders = Physics.OverlapSphere(mid, columns * rows);
-
-        for (int g = 0; g < hitColliders.Length; g++)
-        {
-            Destroy(hitColliders[g].gameObject);
-        }
-
-        Vector3 mid2 = new Vector3(columns / 2, 2, rows / 2);
-        Collider[] hitColliders2 = Physics.OverlapSphere(mid2, columns * rows);
-        for (int d = 0; d < hitColliders2.Length; d++)
-        {
-            Destroy(hitColliders2[d].gameObject);
-        }
-
-        columns = vColumns;
-        rows = vRows;
-        treeAmount = trees;
-        bodiesofwater = bodiesOfWater;
-
-        GenerateWorld();
+        Vector2 mapSize = new Vector2(columns, rows);
+        return mapSize;
     }
 }

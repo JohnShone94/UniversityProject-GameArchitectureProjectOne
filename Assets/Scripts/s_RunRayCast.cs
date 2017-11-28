@@ -5,11 +5,10 @@ using UnityEngine;
 public class s_RunRayCast : MonoBehaviour
 {
     string hitTag;
+    private GameObject objectHit;
+
     public GameObject RayStart;
-    void Start ()
-    {
-		
-	}
+
 
     public string FindWhatIsAtLocation(Vector3 location)
     {
@@ -29,4 +28,14 @@ public class s_RunRayCast : MonoBehaviour
         return hitTag;
     }
 
+    public GameObject FindWhatIsAtCursorLocation()
+    {
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out hit, 100))
+        {
+            objectHit = hit.transform.gameObject;
+        }
+        return objectHit;
+    }
 }

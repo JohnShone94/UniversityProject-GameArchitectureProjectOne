@@ -20,7 +20,7 @@ public class s_MapCreation : MonoBehaviour
     public GameObject tileWater;
     public GameObject tileTree;
     public GameObject tileFruitTree;
-    public GameObject rayStart;
+    public s_RunRayCast rayCast;
 
     public void LoadMap(int vRows, int vColumns, int bodiesOfWater, int trees)
     {
@@ -75,6 +75,12 @@ public class s_MapCreation : MonoBehaviour
         stageThreeComplete = false;
     }
 
+    public Vector2 GetMapSize()
+    {
+        Vector2 mapSize = new Vector2(columns, rows);
+        return mapSize;
+    }
+
     private void GetWater(Vector3 center, float radius)
     {
         Collider[] hitColliders = Physics.OverlapSphere(center, radius);
@@ -107,71 +113,57 @@ public class s_MapCreation : MonoBehaviour
                 Collider[] hitColliders = Physics.OverlapSphere(pos, radius);
                 for (int h = 0; h < hitColliders.Length; h++)
                 {
-                    RaycastHit hit;
-                    Vector3 fwd = transform.TransformDirection(Vector3.forward);
-                    Ray ray = Camera.main.ScreenPointToRay(rayStart.transform.position);
-                    Debug.DrawRay(rayStart.transform.position, transform.TransformDirection(transform.forward), Color.red, 100f);
-                    if (Physics.Raycast(ray, out hit, 100))
+                    if(rayCast.FindWhatIsAtLocation(pos) == "Water")
                     {
-                        if(hit.transform.gameObject.tag == "Water")
-                        {
-                            //Do Nothing
-                        }
-                        else if (hit.transform.gameObject.tag == "Ground")
-                        {
-                            Vector3 pos2 = new Vector3(xPos, 2, zPos);
+                        //Do Nothing
+                    }
+                    else if (rayCast.FindWhatIsAtLocation(pos) == "Ground")
+                    {
+                        Vector3 pos2 = new Vector3(xPos, 2, zPos);
 
-                            Collider[] hitColliders2 = Physics.OverlapSphere(pos2, radius);
-                            for (int i = 0; i < hitColliders2.Length; i++)
+                        Collider[] hitColliders2 = Physics.OverlapSphere(pos2, radius);
+                        for (int i = 0; i < hitColliders2.Length; i++)
+                        {
+                            if (hitColliders2[i].transform.gameObject.tag == "Tree")
                             {
-                                if (hitColliders2[i].transform.gameObject.tag == "Tree")
+                                break;
+                            }
+                            else
+                            {
+                                int index;
+                                int type = (int)Random.Range(0, 10);
+                                if (type < 5)
                                 {
-                                    break;
+                                    index = 1;
                                 }
                                 else
                                 {
-                                    int index;
-                                    int type = (int)Random.Range(0, 10);
-                                    if (type < 5)
-                                    {
-                                        index = 1;
-                                    }
-                                    else
-                                    {
-                                        index = 2;
-                                    }
-                                    Debug.Log("" + index);
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            Debug.Log(pos);
-                                            Debug.Log(pos2);
-                                            Instantiate(tileTree, pos2, Quaternion.identity);
-                                            break;
-                                        case 2:
-                                            Debug.Log(pos);
-                                            Debug.Log(pos2);
-                                            Instantiate(tileFruitTree, pos2, Quaternion.identity);
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    break;
+                                    index = 2;
                                 }
+                                Debug.Log("" + index);
+                                switch (index)
+                                {
+                                    case 1:
+                                        Debug.Log(pos);
+                                        Debug.Log(pos2);
+                                        Instantiate(tileTree, pos2, Quaternion.identity);
+                                        break;
+                                    case 2:
+                                        Debug.Log(pos);
+                                        Debug.Log(pos2);
+                                        Instantiate(tileFruitTree, pos2, Quaternion.identity);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
                             }
-                            break;
                         }
+                        break;
                     }
-
                 }
                 treePlaced = true;
             }
         }
-    }
-
-    public Vector2 GetMapSize()
-    {
-        Vector2 mapSize = new Vector2(columns, rows);
-        return mapSize;
     }
 }
